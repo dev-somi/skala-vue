@@ -6,13 +6,21 @@
          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
          disabled:cursor-not-allowed disabled:opacity-50" />
         <p class="text-sm text-muted-foreground">
-            검색 중인 도시: <span class="text-foreground font-medium">{{ city || '없음' }}</span>
+            검색 중인 도시: <span class="text-foreground font-medium">{{ city }}</span>
         </p>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const city = ref('')
+const emit = defineEmits(['update:search'])
+
+watch(city, (newValue) => {
+    emit('update:search', newValue)
+})
+
 </script>

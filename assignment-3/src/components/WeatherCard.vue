@@ -18,18 +18,21 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
-
 const props = defineProps({
     name: { type: String, required: true },
     temp: { type: Number, required: true },
-    status: { type: String, required: true }
+    status: { type: String, required: true },
 })
+
+const emit = defineEmits(['select'])
 
 function showClickedCity() {
     alert(`${props.name}이 선택되었습니다.`)
+    emit('select', props.name)
 }
 
 function showDetail() {
     alert(`${props.name}의 현재 날씨는 [${props.status}] 상태입니다.`)
 }
+
 </script>
