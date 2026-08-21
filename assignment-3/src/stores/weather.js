@@ -20,6 +20,14 @@ export const useWeatherStore = defineStore('weather', () => {
   const isLoading = ref(false)
   const weatherList = ref([]) //(객체를담는)배열
 
+  const isSearching = ref(false)
+  const searchedCity = ref(null)
+  const searchError = ref(null)
+  const geocodedCities = ref({}) // id -> { id, name, lat, lon }, 검색으로 찾은 도시 캐시
+
+  const isSuggesting = ref(false)
+  const searchSuggestions = ref([])
+
   // 좌표(lat, lon) 하나로 도시 하나의 날씨를 조회해서 필요한 필드만 정리해 반환
   const handleFetchWeather = async (lat, lon) => {
     const API_KEY = import.meta.env.VITE_OPENWEATHER_KEY
@@ -62,7 +70,7 @@ export const useWeatherStore = defineStore('weather', () => {
 
   // cityId로 좌표를 찾아 해당 도시 하나의 상세 날씨를 조회
   const fetchCityDetail = async (cityId) => {
-    const city = cities.find((c) => c.id === cityId)
+    const city = cities.find((c) => c.id === cityId) || geocodedCities.value[cityId]
     if (!city) return null
 
     isLoading.value = true
@@ -77,5 +85,72 @@ export const useWeatherStore = defineStore('weather', () => {
     }
   }
 
-  return { isLoading, weatherList, handleFetchWeather, fetchAllWeather, fetchCityDetail }
+  // 입력한 글자로 지오코딩(Open-Meteo) 후보 도시 목록을 조회 (자동완성용)
+  const fetchCitySuggestions = async (query) => {
+    const name = query?.trim()
+    if (!name) {
+      searchSuggestions.value = []
+      return
+    }
+
+    isSuggesting.value = true
+    try {
+      const geoResponse = await axios.get('https://geocoding-api.open-meteo.com/v1/search', {
+        params: { name, count: 8, language: 'ko' },
+      })
+
+      searchSuggestions.value = (geoResponse.data?.results ?? []).map((result) => {
+        const region = result.admin1 ? `${result.admin1}, ` : ''
+        const country = result.country ?? result.country_code ?? ''
+        return {
+          label: `${result.name} (${region}${country})`,
+          name: result.name,
+          lat: result.latitude,
+          lon: result.longitude,
+        }
+      })
+    } catch (error) {
+      console.error('통신 중 에러가 발생했습니다: ', error)
+      searchSuggestions.value = []
+    } finally {
+      isSuggesting.value = false
+    }
+  }
+
+  // 자동완성 후보 중 선택한 도시의 위경도로 실시간 날씨를 조회
+  const selectSearchedCity = async (suggestion) => {
+    if (!suggestion) return
+
+    isSearching.value = true
+    searchError.value = null
+    searchedCity.value = null
+
+    try {
+      const id = `geo_${suggestion.lat}_${suggestion.lon}`
+      geocodedCities.value[id] = { id, name: suggestion.name, lat: suggestion.lat, lon: suggestion.lon }
+
+      const weather = await handleFetchWeather(suggestion.lat, suggestion.lon)
+      searchedCity.value = { id, name: suggestion.name, ...weather }
+    } catch (error) {
+      console.error('통신 중 에러가 발생했습니다: ', error)
+      searchError.value = '날씨 정보를 불러오는 중 오류가 발생했습니다.'
+    } finally {
+      isSearching.value = false
+    }
+  }
+
+  return {
+    isLoading,
+    weatherList,
+    handleFetchWeather,
+    fetchAllWeather,
+    fetchCityDetail,
+    isSearching,
+    searchedCity,
+    searchError,
+    isSuggesting,
+    searchSuggestions,
+    fetchCitySuggestions,
+    selectSearchedCity,
+  }
 })

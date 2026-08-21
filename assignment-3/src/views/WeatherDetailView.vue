@@ -1,90 +1,66 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import Dialog from 'primevue/dialog'
 import ProgressSpinner from 'primevue/progressspinner'
 import Message from 'primevue/message'
-import Tag from 'primevue/tag'
-import DataView from 'primevue/dataview'
-import { useConfigStore } from '@/stores/configStore'
+import { X } from '@lucide/vue'
+import WeatherCard from '@/components/exercise/WeatherCard.vue'
 import { useWeatherStore } from '@/stores/weather'
 
 const route = useRoute()
 const router = useRouter()
-const configStore = useConfigStore()
 const weatherStore = useWeatherStore()
 
 const cityDetail = ref(null)
-const visible = ref(true)
 
 onMounted(async () => {
   cityDetail.value = await weatherStore.fetchCityDetail(route.params.cityId)
 })
 
-const displayTemp = computed(() => {
-  const rawTemp = cityDetail.value?.temp
-  if (rawTemp === undefined) return rawTemp
-  if (configStore.unit === 'fahrenheit') {
-    return Math.round((rawTemp * 9) / 5 + 32)
-  }
-  return rawTemp
-})
-
-const detailItems = computed(() => {
-  if (!cityDetail.value) return []
-  return [
-    { label: '현재 상태', value: cityDetail.value.status },
-    { label: '기온', value: `${displayTemp.value}${configStore.unitSymbol}` },
-    { label: '습도', value: `${cityDetail.value.humidity}%` },
-    { label: '풍속', value: `${cityDetail.value.windSpeed}m/s` },
-  ]
-})
-
-function closeDialog() {
+function closeOverlay() {
   router.push('/')
 }
 </script>
 
+<template>
+  <div class="detail-overlay" @click.self="closeOverlay">
+    <div class="detail-panel">
+      <button class="detail-close" title="닫기" @click="closeOverlay">
+        <X :size="18" />
+      </button>
+      <div v-if="weatherStore.isLoading" class="detail-loading">
+        <ProgressSpinner stroke-width="4" />
+      </div>
+      <WeatherCard v-else-if="cityDetail" :city="cityDetail" readonly detailed />
+      <Message v-else severity="secondary">'{{ route.params.cityId }}'에 해당하는 도시 정보를 찾을 수 없습니다.</Message>
+    </div>
+  </div>
+</template>
+
 <style scoped>
 @reference '@/assets/main.css';
 
-p {
-  @apply mb-3 text-sm text-slate-500;
+.detail-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm;
 }
 
-:deep(.p-dataview-content) {
-  @apply flex flex-col gap-2;
+.detail-panel {
+  @apply relative w-full max-w-md;
 }
 
-:deep(.p-tag) {
-  @apply w-full justify-start rounded-xl bg-slate-900/5 px-3 py-2 text-sm font-medium text-slate-700;
+.detail-close {
+  @apply absolute -right-3 -top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-700 shadow-lg transition-colors duration-150;
 }
 
-:deep(.p-progress-spinner) {
-  @apply mx-auto flex w-16;
+.detail-close:hover {
+  @apply bg-slate-100;
 }
 
-:deep(.p-message) {
-  @apply rounded-xl;
+.detail-loading {
+  @apply flex aspect-[2060/940] w-full items-center justify-center rounded-2xl bg-slate-200;
+}
+
+.detail-loading :deep(.p-progress-spinner) {
+  @apply h-12 w-12;
 }
 </style>
-
-<template>
-  <Dialog v-model:visible="visible" modal :header="cityDetail ? `${cityDetail.name} 상세 기상관측 정보` : '상세 정보'"
-    @update:visible="closeDialog">
-    <div v-if="weatherStore.isLoading">
-      <ProgressSpinner />
-    </div>
-    <div v-else-if="cityDetail">
-      <p>도시 코드: {{ cityDetail.id }}</p>
-      <DataView :value="detailItems" data-key="label">
-        <template #list="{ items }">
-          <div v-for="item in items" :key="item.label">
-            <Tag severity="secondary" :value="`${item.label} : ${item.value}`" />
-          </div>
-        </template>
-      </DataView>
-    </div>
-    <Message v-else severity="secondary">'{{ route.params.cityId }}'에 해당하는 도시 정보를 찾을 수 없습니다.</Message>
-  </Dialog>
-</template>

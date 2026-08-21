@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import Select from 'primevue/select'
 import Message from 'primevue/message'
+import ProgressSpinner from 'primevue/progressspinner'
 import BaseDashboardCard from '@/components/exercise/BaseDashboardCard.vue'
 import WeatherCard from '@/components/exercise/WeatherCard.vue'
 import { cities } from '@/stores/weather'
@@ -35,31 +36,32 @@ function displayTemp(rawTemp) {
   return rawTemp
 }
 
-const lastYearCity = computed(() => {
-  const weather = historyStore.lastYearWeather
+function toCityWeather(id, weather) {
   if (!weather) return null
   return {
-    id: `${selectedCity.value.id}-last-year`,
+    id,
     name: selectedCity.value.name,
     temp: weather.temp,
     status: weather.status,
     dt: weather.dt,
     timezone: weather.timezone,
   }
-})
+}
 
-const todayCity = computed(() => {
-  const weather = historyStore.todayWeather
-  if (!weather) return null
-  return {
-    id: selectedCity.value.id,
-    name: selectedCity.value.name,
-    temp: weather.temp,
-    status: weather.status,
-    dt: weather.dt,
-    timezone: weather.timezone,
-  }
-})
+const columns = computed(() => [
+  {
+    key: 'last-year',
+    title: '1년 전 오늘',
+    isLoading: historyStore.isLoadingLastYear,
+    city: toCityWeather(`${selectedCity.value.id}-last-year`, historyStore.lastYearWeather),
+  },
+  {
+    key: 'today',
+    title: '오늘',
+    isLoading: historyStore.isLoadingToday,
+    city: toCityWeather(selectedCity.value.id, historyStore.todayWeather),
+  },
+])
 
 const tempDiff = computed(() => {
   if (!bothLoaded.value) return null
@@ -72,13 +74,15 @@ const comparisonSentence = computed(() => {
   if (tempDiff.value === null) return ''
   const abs = Math.abs(tempDiff.value)
   if (abs < 0.5) {
-    return '1년 전 오늘과 지금은 기온이 비슷했어요.'
+    return '오늘은 1년 전과 기온이 비슷해요.'
   } else if (tempDiff.value > 0) {
-    return `1년 전 오늘은 지금보다 ${abs}${configStore.unitSymbol} 추웠어요.`
+    return `오늘은 1년 전보다 ${abs}${configStore.unitSymbol} 더워요.`
   } else {
-    return `1년 전 오늘은 지금보다 ${abs}${configStore.unitSymbol} 더웠어요.`
+    return `오늘은 1년 전보다 ${abs}${configStore.unitSymbol} 시원해요.`
   }
 })
+
+const comparisonSeverity = computed(() => (tempDiff.value > 0 ? 'error' : 'info'))
 </script>
 
 <template>
@@ -90,35 +94,15 @@ const comparisonSentence = computed(() => {
       <Message v-if="historyStore.error" severity="warn">{{ historyStore.error }}</Message>
 
       <div class="compare-columns">
-        <div class="compare-column">
-          <h3>{{ selectedCity.name }} · 1년 전 오늘</h3>
-          <div v-if="historyStore.isLoadingLastYear" class="weather-card-skeleton" />
+        <div v-for="column in columns" :key="column.key" class="compare-column">
+          <h3>{{ column.title }}</h3>
+          <div v-if="column.isLoading" class="weather-card-skeleton">
+            <ProgressSpinner stroke-width="4" />
+          </div>
           <Transition name="reveal">
-            <div v-if="!historyStore.isLoadingLastYear && lastYearCity">
-              <WeatherCard :city="lastYearCity" readonly />
-              <p class="compare-detail">
-                최고 {{ displayTemp(historyStore.lastYearWeather.tempMax) }}{{ configStore.unitSymbol }}
-                / 최저 {{ displayTemp(historyStore.lastYearWeather.tempMin) }}{{ configStore.unitSymbol }}
-              </p>
-              <p class="compare-detail">풍속 {{ historyStore.lastYearWeather.windSpeed }}m/s</p>
-            </div>
+            <WeatherCard v-if="!column.isLoading && column.city" :city="column.city" readonly />
           </Transition>
-          <Message v-if="!historyStore.isLoadingLastYear && !lastYearCity" severity="secondary">
-            데이터를 불러올 수 없습니다.
-          </Message>
-        </div>
-
-        <div class="compare-column">
-          <h3>{{ selectedCity.name }} · 오늘</h3>
-          <div v-if="historyStore.isLoadingToday" class="weather-card-skeleton" />
-          <Transition name="reveal">
-            <div v-if="!historyStore.isLoadingToday && todayCity">
-              <WeatherCard :city="todayCity" readonly />
-              <p class="compare-detail">습도 {{ historyStore.todayWeather.humidity }}%</p>
-              <p class="compare-detail">풍속 {{ historyStore.todayWeather.windSpeed }}m/s</p>
-            </div>
-          </Transition>
-          <Message v-if="!historyStore.isLoadingToday && !todayCity" severity="secondary">
+          <Message v-if="!column.isLoading && !column.city" severity="secondary">
             데이터를 불러올 수 없습니다.
           </Message>
         </div>
@@ -126,7 +110,7 @@ const comparisonSentence = computed(() => {
 
       <Transition name="reveal">
         <div v-if="bothLoaded" class="compare-sentence">
-          <Message severity="info">{{ comparisonSentence }}</Message>
+          <Message :severity="comparisonSeverity">{{ comparisonSentence }}</Message>
         </div>
       </Transition>
     </div>
@@ -141,7 +125,7 @@ h2 {
 }
 
 h3 {
-  @apply mb-3 text-base font-semibold text-slate-800;
+  @apply mb-2 text-xl font-bold text-slate-800;
 }
 
 :deep(.p-select) {
@@ -157,16 +141,16 @@ h3 {
 }
 
 .compare-column {
-  @apply min-w-0 flex-1 rounded-2xl border border-slate-100 bg-white/70 p-4 shadow-sm;
-}
-
-.compare-detail {
-  @apply mb-1.5 mt-2 text-sm text-slate-600;
+  @apply min-w-0 flex-1 rounded-2xl border border-slate-100 bg-white/70 p-3 shadow-sm;
 }
 
 .weather-card-skeleton {
-  @apply w-full animate-pulse rounded-2xl bg-slate-200;
+  @apply flex w-full items-center justify-center rounded-2xl bg-slate-200;
   aspect-ratio: 2060 / 940;
+}
+
+.weather-card-skeleton :deep(.p-progress-spinner) {
+  @apply h-12 w-12;
 }
 
 .compare-sentence {

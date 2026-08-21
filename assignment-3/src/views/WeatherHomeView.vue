@@ -50,12 +50,36 @@ watchEffect(() => {
   `)
 })
 
+function handleCompleteQuery(query) {
+  weatherStore.fetchCitySuggestions(query)
+}
+
+function handleSelectCity(suggestion) {
+  weatherStore.selectSearchedCity(suggestion)
+}
 
 </script>
 
 <template>
   <BaseDashboardCard>
-    <SearchBar :search-query="searchQeury" @update-query="searchQeury = $event" />
+    <SearchBar :search-query="searchQeury" :suggestions="weatherStore.searchSuggestions"
+      :is-searching="weatherStore.isSearching" :is-suggesting="weatherStore.isSuggesting"
+      @update-query="searchQeury = $event" @complete-query="handleCompleteQuery" @select-city="handleSelectCity" />
+  </BaseDashboardCard>
+
+  <BaseDashboardCard v-if="weatherStore.isSearching || weatherStore.searchError || weatherStore.searchedCity">
+    <div>
+      <h2>검색 결과</h2>
+      <Divider />
+      <div v-if="weatherStore.isSearching">
+        <ProgressSpinner />
+      </div>
+      <Message v-else-if="weatherStore.searchError" severity="error">{{ weatherStore.searchError }}</Message>
+      <div v-else-if="weatherStore.searchedCity" class="weather-grid">
+        <WeatherCard :city="weatherStore.searchedCity" @select-card="selectedCityInfo = $event"
+          @click-detail="handleClickDetail" />
+      </div>
+    </div>
   </BaseDashboardCard>
 
   <BaseDashboardCard>
@@ -93,8 +117,8 @@ h2 {
 
 .weather-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-  @apply gap-4;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  @apply gap-6;
 }
 
 .weather-grid + .weather-grid {

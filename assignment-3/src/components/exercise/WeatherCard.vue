@@ -23,6 +23,17 @@
         </div>
       </div>
 
+      <div v-if="detailed" class="weather-card__stats">
+        <div class="weather-card__stat">
+          <Droplets :size="16" />
+          <span>습도 {{ city.humidity }}%</span>
+        </div>
+        <div class="weather-card__stat">
+          <Wind :size="16" />
+          <span>풍속 {{ city.windSpeed }}m/s</span>
+        </div>
+      </div>
+
       <div class="weather-card__row weather-card__row--bottom">
         <div class="weather-card__name">{{ city.name }}</div>
         <div class="weather-card__date">{{ dateLabel }}</div>
@@ -35,7 +46,8 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
-import { Maximize2, Star } from '@lucide/vue'
+import { useToast } from 'primevue/usetoast'
+import { Maximize2, Star, Droplets, Wind } from '@lucide/vue'
 import { useConfigStore } from '@/stores/configStore'
 import { useFavoriteStore } from '@/stores/favorite'
 import { getWeatherBackground, getWeatherIcon, getLocalDateLabel } from '@/utils/weatherCondition'
@@ -43,6 +55,7 @@ import { getWeatherBackground, getWeatherIcon, getLocalDateLabel } from '@/utils
 const router = useRouter()
 const configStore = useConfigStore()
 const favoriteStore = useFavoriteStore()
+const toast = useToast()
 
 const props = defineProps({
   city: {
@@ -50,6 +63,10 @@ const props = defineProps({
     required: true
   },
   readonly: {
+    type: Boolean,
+    default: false
+  },
+  detailed: {
     type: Boolean,
     default: false
   }
@@ -73,7 +90,12 @@ const backgroundStyle = computed(() => {
 const emit = defineEmits(['select-card', 'click-detail'])
 
 function showClickedCity() {
-  alert(`${props.city.name}이 선택되었습니다.`)
+  toast.add({
+    severity: 'info',
+    summary: `${props.city.name}가 선택되었습니다`,
+    detail: '더 자세한 정보를 보려면 상세보기 아이콘을 클릭하세요',
+    life: 3000
+  })
   emit('select-card', props.city)
 }
 
@@ -105,7 +127,7 @@ function showDetail() {
 }
 
 .weather-card__overlay {
-  @apply relative flex h-full flex-col justify-between p-4 text-white;
+  @apply relative flex h-full flex-col justify-between p-5 text-white;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0) 65%, rgba(0, 0, 0, 0.5) 100%);
 }
 
@@ -140,6 +162,15 @@ function showDetail() {
 
 .weather-card__row--bottom {
   @apply items-end gap-2;
+}
+
+.weather-card__stats {
+  @apply flex gap-2 self-start;
+}
+
+.weather-card__stat {
+  @apply flex items-center gap-1.5 rounded-full bg-black/20 px-2.5 py-1 text-[0.85rem] font-medium backdrop-blur-sm;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .weather-card__status {
