@@ -3,9 +3,9 @@ import { ref, computed } from 'vue'
 
 export const useConfigStore = defineStore('config', () => {
   const unit = ref('celsius')
-  const unitSymbol = computed(() => (unit.value === 'celsius' ? 'C' : 'F'))
+  const unitSymbol = computed(() => (unit.value === 'celsius' ? '°C' : '°F'))
 
-  function toggleUnit(unit) {
+  function toggleUnit() {
     if (unit.value === 'celsius') {
       unit.value = 'fahrenheit'
     } else {

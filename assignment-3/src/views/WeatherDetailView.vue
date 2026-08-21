@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import BaseDashboardCard from '@/components/exercise/BaseDashboardCard.vue'
 import { Separator } from '@/components/ui/separator'
+import { useConfigStore } from '@/stores/configStore'
 
 const route = useRoute()
+const configStore = useConfigStore()
 
 const mockDetailList = [
   { id: 'city_01', name: '서울', temp: 28, status: '맑음', humidity: 55, windSpeed: 2.1 },
@@ -25,6 +27,15 @@ const cityDetail = ref(null)
 onMounted(() => {
   cityDetail.value = mockDetailList.find((city) => city.id === route.params.cityId) ?? null
 })
+
+const displayTemp = computed(() => {
+  const rawTemp = cityDetail.value?.temp
+  if (rawTemp === undefined) return rawTemp
+  if (configStore.unit === 'fahrenheit') {
+    return Math.round((rawTemp * 9) / 5 + 32)
+  }
+  return rawTemp
+})
 </script>
 
 <template>
@@ -36,7 +47,7 @@ onMounted(() => {
       <p class="text-gray-500 mb-4">도시 코드: {{ cityDetail.id }}</p>
       <div class="grid grid-cols-2 gap-4 text-left">
         <p class="text-gray-700"><span class="font-medium">현재 상태</span> : {{ cityDetail.status }}</p>
-        <p class="text-gray-700"><span class="font-medium">기온</span> : {{ cityDetail.temp }}도</p>
+        <p class="text-gray-700"><span class="font-medium">기온</span> : {{ displayTemp }}{{ configStore.unitSymbol }}</p>
         <p class="text-gray-700"><span class="font-medium">습도</span> : {{ cityDetail.humidity }}%</p>
         <p class="text-gray-700"><span class="font-medium">풍속</span> : {{ cityDetail.windSpeed }}m/s</p>
       </div>
