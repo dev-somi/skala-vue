@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import { defineStore } from 'pinia'
+import { KOREAN_CITY_ALIASES } from '@/utils/cityAlias'
 
 export const cities = [
   { id: 'city_01', name: '서울', lat: 37.5665, lon: 126.978 },
@@ -14,6 +15,7 @@ export const cities = [
   { id: 'city_09', name: '제주', lat: 33.4996, lon: 126.5312 },
   { id: 'city_10', name: '강릉', lat: 37.7519, lon: 128.8761 },
   { id: 'city_11', name: '세종', lat: 36.4801, lon: 127.289 },
+  { id: 'city_12', name: '청주', lat: 36.6424, lon: 127.489 },
 ]
 
 export const useWeatherStore = defineStore('weather', () => {
@@ -57,7 +59,7 @@ export const useWeatherStore = defineStore('weather', () => {
       const results = await Promise.all(
         cities.map(async (city) => {
           const weather = await handleFetchWeather(city.lat, city.lon)
-          return { id: city.id, name: city.name, ...weather }
+          return { ...weather, id: city.id, name: city.name }
         })
       )
       weatherList.value = results
@@ -76,7 +78,7 @@ export const useWeatherStore = defineStore('weather', () => {
     isLoading.value = true
     try {
       const weather = await handleFetchWeather(city.lat, city.lon)
-      return { id: city.id, name: city.name, ...weather }
+      return { ...weather, id: city.id, name: city.name }
     } catch (error) {
       console.error('통신 중 에러가 발생했습니다: ', error)
       return null
@@ -87,11 +89,14 @@ export const useWeatherStore = defineStore('weather', () => {
 
   // 입력한 글자로 지오코딩(Open-Meteo) 후보 도시 목록을 조회 (자동완성용)
   const fetchCitySuggestions = async (query) => {
-    const name = query?.trim()
-    if (!name) {
+    const raw = query?.trim()
+    if (!raw) {
       searchSuggestions.value = []
       return
     }
+
+    // Open-Meteo는 한글 지명 매칭이 부실해서, 흔히 쓰이는 도시는 영문 검색어로 치환
+    const name = KOREAN_CITY_ALIASES[raw] ?? raw
 
     isSuggesting.value = true
     try {

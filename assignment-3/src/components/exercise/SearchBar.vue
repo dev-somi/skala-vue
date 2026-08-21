@@ -1,16 +1,26 @@
 <template>
-  <div>
-    <label for="city">도시 검색</label>
-    <AutoComplete id="city" :model-value="searchQuery" :suggestions="suggestions" option-label="label"
-      :loading="isSearching || isSuggesting" placeholder="도시 이름을 입력하세요 (예: 도쿄, 파리)" @complete="onComplete"
-      @option-select="onOptionSelect" @update:model-value="onInput" />
-    <Tag severity="info" :value="`검색 중인 도시: ${searchQuery}`" />
+  <div class="search-bar">
+    <IconField class="search-bar__field">
+      <InputIcon>
+        <Search :size="18" />
+      </InputIcon>
+      <AutoComplete id="city" aria-label="도시 검색" :model-value="searchQuery" :suggestions="suggestions"
+        option-label="label" :loading="isSearching || isSuggesting" placeholder="도시 이름을 입력하세요 (예: 도쿄, 파리)" fluid
+        @complete="onComplete"
+        @option-select="onOptionSelect" @update:model-value="onInput" />
+    </IconField>
+    <p v-if="searchQuery" class="search-bar__hint">
+      <span class="search-bar__hint-dot" />
+      검색 중인 도시: <strong>{{ searchQuery }}</strong>
+    </p>
   </div>
 </template>
 
 <script setup>
 import AutoComplete from 'primevue/autocomplete'
-import Tag from 'primevue/tag'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
+import { Search } from '@lucide/vue'
 
 defineProps({
   searchQuery: {
@@ -51,23 +61,39 @@ function onOptionSelect(event) {
 <style scoped>
 @reference '@/assets/main.css';
 
-div {
-  @apply flex flex-wrap items-center gap-3;
+.search-bar {
+  @apply flex flex-col items-center gap-2 text-center;
 }
 
-label {
-  @apply text-sm font-semibold text-slate-600;
+.search-bar__field {
+  @apply w-full max-w-xl;
+}
+
+:deep(.p-autocomplete) {
+  @apply w-full;
 }
 
 :deep(.p-autocomplete-input) {
-  @apply rounded-full border-slate-200 bg-white/80 py-2;
+  @apply w-full rounded-full border-slate-200 bg-white/80 py-2.5 pl-10 text-[0.95rem] shadow-sm;
+}
+
+:deep(.p-autocomplete-input:enabled:hover) {
+  @apply border-sky-300;
 }
 
 :deep(.p-autocomplete-input:enabled:focus) {
   @apply border-sky-400 shadow-[0_0_0_3px_rgba(56,189,248,0.25)];
 }
 
-:deep(.p-tag) {
-  @apply rounded-full bg-sky-50 px-3 py-1 font-medium text-sky-700;
+.search-bar__field :deep(.p-inputicon) {
+  @apply left-3.5 text-slate-400;
+}
+
+.search-bar__hint {
+  @apply flex items-center gap-1.5 text-sm text-sky-700;
+}
+
+.search-bar__hint-dot {
+  @apply h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500;
 }
 </style>

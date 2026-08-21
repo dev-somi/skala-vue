@@ -13,7 +13,7 @@
                 <Maximize2 :size="16" />
               </template>
             </Button>
-            <Button text rounded size="small" severity="warn" title="즐겨찾기" @click.stop="favoriteStore.toggleFavorite(city.id)">
+            <Button text rounded size="small" severity="warn" title="즐겨찾기" @click.stop="favoriteStore.toggleFavorite(city)">
               <template #icon>
                 <Star :size="16" :fill="favoriteStore.isFavorite(city.id) ? 'currentColor' : 'none'" />
               </template>

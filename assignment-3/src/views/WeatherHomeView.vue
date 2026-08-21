@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, watchEffect, onMounted } from 'vue';
 import SearchBar from '@/components/exercise/SearchBar.vue'
+import { Search } from '@lucide/vue'
 import WeatherCard from '@/components/exercise/WeatherCard.vue';
 import BaseDashboardCard from '@/components/exercise/BaseDashboardCard.vue';
 import WeatherSortControl from '@/components/exercise/WeatherSortControl.vue';
@@ -61,21 +62,23 @@ function handleSelectCity(suggestion) {
 </script>
 
 <template>
-  <BaseDashboardCard>
-    <SearchBar :search-query="searchQeury" :suggestions="weatherStore.searchSuggestions"
-      :is-searching="weatherStore.isSearching" :is-suggesting="weatherStore.isSuggesting"
-      @update-query="searchQeury = $event" @complete-query="handleCompleteQuery" @select-city="handleSelectCity" />
-  </BaseDashboardCard>
+  <SearchBar class="home-search" :search-query="searchQeury" :suggestions="weatherStore.searchSuggestions"
+    :is-searching="weatherStore.isSearching" :is-suggesting="weatherStore.isSuggesting"
+    @update-query="searchQeury = $event" @complete-query="handleCompleteQuery" @select-city="handleSelectCity" />
 
   <BaseDashboardCard v-if="weatherStore.isSearching || weatherStore.searchError || weatherStore.searchedCity">
     <div>
-      <h2>검색 결과</h2>
+      <h2 class="search-result-title">
+        <Search :size="18" />
+        검색 결과
+      </h2>
       <Divider />
-      <div v-if="weatherStore.isSearching">
+      <div v-if="weatherStore.isSearching" class="search-result-status">
         <ProgressSpinner />
       </div>
-      <Message v-else-if="weatherStore.searchError" severity="error">{{ weatherStore.searchError }}</Message>
-      <div v-else-if="weatherStore.searchedCity" class="weather-grid">
+      <Message v-else-if="weatherStore.searchError" severity="error" class="search-result-status">{{
+        weatherStore.searchError }}</Message>
+      <div v-else-if="weatherStore.searchedCity" class="weather-grid weather-grid--single">
         <WeatherCard :city="weatherStore.searchedCity" @select-card="selectedCityInfo = $event"
           @click-detail="handleClickDetail" />
       </div>
@@ -84,9 +87,9 @@ function handleSelectCity(suggestion) {
 
   <BaseDashboardCard>
     <div>
-      <h2>지역별 날씨 현황</h2>
+      <h2>한국 지역별 날씨 현황</h2>
       <Divider />
-      <div>
+      <div class="home-toolbar">
         <h2 v-if="!weatherStore.isLoading">평균 기온: {{ averageTemp }}도</h2>
         <WeatherSortControl :sort-order="sortOrder" @update:sort-order="sortOrder = $event" />
       </div>
@@ -111,6 +114,18 @@ h2 {
   @apply text-lg font-bold text-slate-900;
 }
 
+.home-search {
+  @apply mx-auto mb-2 w-full max-w-xl;
+}
+
+.search-result-title {
+  @apply flex items-center gap-2 text-sky-700;
+}
+
+.search-result-status {
+  @apply flex items-center justify-center py-6 text-center;
+}
+
 :deep(.p-divider) {
   @apply my-4;
 }
@@ -121,11 +136,16 @@ h2 {
   @apply gap-6;
 }
 
-.weather-grid + .weather-grid {
+.weather-grid--single {
+  grid-template-columns: minmax(0, 24rem);
+  justify-content: start;
+}
+
+.weather-grid+.weather-grid {
   @apply mt-4;
 }
 
-:deep(.p-divider) + div {
+.home-toolbar {
   @apply mb-4 flex flex-wrap items-center justify-between gap-3;
 }
 
