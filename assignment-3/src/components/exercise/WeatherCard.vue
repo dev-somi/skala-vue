@@ -1,26 +1,22 @@
 <template>
-  <Card @click="showClickedCity"
-    class="flex flex-row items-center justify-between p-4 cursor-pointer hover:shadow-md transition-shadow">
-    <CardHeader class="p-0 flex-1">
-      <CardTitle>{{ city.name }} ({{ city.status }})</CardTitle>
-      <CardContent class="p-0">
+  <div @click="showClickedCity">
+    <div>
+      <h3>{{ city.name }} ({{ city.status }})</h3>
+      <div>
         <p>현재 기온: {{ displayTemp }}{{ configStore.unitSymbol }}</p>
-        <Badge v-if="city.temp > 25" variant="destructive">🔥 더움</Badge>
-        <Badge v-else class="bg-blue-100 text-blue-700 hover:bg-blue-100">❄️ 선선함</Badge>
-      </CardContent>
-    </CardHeader>
-    <Button @click.stop="showDetail">상세보기</Button>
-    <Button @click.stop="favoriteStore.toggleFavorite(city.id)" variant="ghost">
+        <span v-if="city.temp > 25">🔥 더움</span>
+        <span v-else>❄️ 선선함</span>
+      </div>
+    </div>
+    <button @click.stop="showDetail">상세보기</button>
+    <button @click.stop="favoriteStore.toggleFavorite(city.id)">
       {{ favoriteStore.isFavorite(city.id) ? '★' : '☆' }}
-    </Button>
-  </Card>
+    </button>
+  </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'vue-router'
 import { useConfigStore } from '@/stores/configStore'
 import { useFavoriteStore } from '@/stores/favorite'
@@ -55,5 +51,4 @@ function showDetail() {
   router.push({ name: 'weather-detail', params: { cityId: props.city.id } })
   emit('click-detail', props.city)
 }
-
 </script>
