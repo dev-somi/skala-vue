@@ -1,35 +1,22 @@
 <script setup>
-// TODO(선택): 지금 아래 weatherList가 이 파일 안에만 있는 로컬 ref라서
-// FavoritesView.vue 같은 다른 뷰에서는 이 데이터에 접근할 수 없어.
-// weather store(src/stores/weather.js)를 완성했다면,
-// 이 weatherList를 store로 옮기고 여기서는 store에서 꺼내 쓰도록 바꿔보기.
-// (import { useWeatherStore } from '@/stores/weather')
-
-import { ref, computed, watch, watchEffect } from 'vue';
+import { ref, computed, watch, watchEffect, onMounted } from 'vue';
 import SearchBar from '@/components/exercise/SearchBar.vue'
 import WeatherCard from '@/components/exercise/WeatherCard.vue';
 import BaseDashboardCard from '@/components/exercise/BaseDashboardCard.vue';
 import WeatherSortControl from '@/components/exercise/WeatherSortControl.vue';
 import { Separator } from '@/components/ui/separator'
+import { useWeatherStore } from '@/stores/weather'
 
-const weatherList = ref([
-  { id: 'city_01', name: '서울', temp: 28, status: '맑음' },
-  { id: 'city_02', name: '수원', temp: 24, status: '비' },
-  { id: 'city_03', name: '부산', temp: 26, status: '구름' },
-  { id: 'city_04', name: '인천', temp: 27, status: '맑음' },
-  { id: 'city_05', name: '대전', temp: 29, status: '흐림' },
-  { id: 'city_06', name: '대구', temp: 31, status: '맑음' },
-  { id: 'city_07', name: '광주', temp: 25, status: '비' },
-  { id: 'city_08', name: '울산', temp: 26, status: '구름' },
-  { id: 'city_09', name: '제주', temp: 23, status: '흐림' },
-  { id: 'city_10', name: '강릉', temp: 22, status: '맑음' },
-  { id: 'city_11', name: '세종', temp: 27, status: '맑음' },
-])
+const weatherStore = useWeatherStore()
+
+onMounted(() => {
+  weatherStore.fetchAllWeather()
+})
 
 const searchQeury = ref('')
 const selectedCityInfo = ref(null)
 const filteredWeatherList = computed(() =>
-  weatherList.value.filter((city) => city.name.includes(searchQeury.value))
+  weatherStore.weatherList.filter((city) => city.name.includes(searchQeury.value))
 )
 
 const averageTemp = computed(() => {
@@ -77,11 +64,12 @@ watchEffect(() => {
     <div class="w-full">
       <h2 class="text-lg font-semibold text-gray-700 mb-2 text-center">지역별 날씨 현황</h2>
       <div class="flex items-center justify-between mb-2">
-        <h2 class="text-lg font-semibold text-gray-700">평균 기온: {{ averageTemp }}도</h2>
+        <h2 v-if="!weatherStore.isLoading" class="text-lg font-semibold text-gray-700">평균 기온: {{ averageTemp }}도</h2>
         <WeatherSortControl :sort-order="sortOrder" @update:sort-order="sortOrder = $event" />
       </div>
       <div class="flex flex-col justify-center gap-4">
-        <div v-if="filteredWeatherList.length > 0" class="flex flex-col justify-center gap-4">
+        <div v-if="weatherStore.isLoading" class="text-center text-gray-500">날씨 불러오는 중...</div>
+        <div v-else-if="filteredWeatherList.length > 0" class="flex flex-col justify-center gap-4">
           <WeatherCard v-for="weather in orderedWeatherList" :key="weather.id" :city="weather"
             @select-card="selectedCityInfo = $event" @click-detail="handleClickDetail" />
         </div>

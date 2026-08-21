@@ -1,12 +1,14 @@
 <script setup>
 import { RouterLink } from 'vue-router';
 import UnitToggler from '@/components/exercise/UnitToggler.vue'
+
 </script>
 
 <template>
   <div class="flex flex-col items-center gap-4 p-4 max-w-2xl mx-auto">
     <div class="flex items-center justify-center gap-3">
-      <nav class="flex items-center gap-1 rounded-full border border-gray-200 bg-white/80 p-1.5 shadow-sm backdrop-blur">
+      <nav
+        class="flex items-center gap-1 rounded-full border border-gray-200 bg-white/80 p-1.5 shadow-sm backdrop-blur">
         <RouterLink to="/" class="nav-link">Home</RouterLink>
         <RouterLink to="/about" class="nav-link">About</RouterLink>
         <RouterLink to="/favorites" class="nav-link">Favorites</RouterLink>
