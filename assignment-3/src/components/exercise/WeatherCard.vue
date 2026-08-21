@@ -10,6 +10,9 @@
       </CardContent>
     </CardHeader>
     <Button @click.stop="showDetail">상세보기</Button>
+    <Button @click.stop="favoriteStore.toggleFavorite(city.id)" variant="ghost">
+      {{ favoriteStore.isFavorite(city.id) ? '★' : '☆' }}
+    </Button>
   </Card>
 </template>
 
@@ -20,15 +23,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'vue-router'
 import { useConfigStore } from '@/stores/configStore'
-
-// TODO: 즐겨찾기 별 아이콘 버튼 추가
-// 1) useWeatherStore()에서 toggleFavorite, isFavorite(또는 favoriteIds) 가져오기
-// 2) 템플릿의 Button("상세보기") 옆에 별 버튼 하나 추가
-//    - @click.stop 필수! (안 그러면 카드 전체 클릭 이벤트(showClickedCity)까지 같이 터짐)
-// 3) isFavorite(props.city.id) 값에 따라 아이콘/색 다르게 표시 (예: ★ / ☆)
+import { useFavoriteStore } from '@/stores/favorite'
 
 const router = useRouter()
 const configStore = useConfigStore()
+const favoriteStore = useFavoriteStore()
 
 const props = defineProps({
   city: {
