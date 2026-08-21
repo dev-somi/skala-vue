@@ -36,6 +36,8 @@ export const useWeatherStore = defineStore('weather', () => {
       status: response.data.weather[0].main,
       humidity: response.data.main.humidity,
       windSpeed: response.data.wind.speed,
+      dt: response.data.dt,
+      timezone: response.data.timezone,
     }
   }
 

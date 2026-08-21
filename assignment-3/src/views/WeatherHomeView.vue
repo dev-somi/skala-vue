@@ -4,6 +4,9 @@ import SearchBar from '@/components/exercise/SearchBar.vue'
 import WeatherCard from '@/components/exercise/WeatherCard.vue';
 import BaseDashboardCard from '@/components/exercise/BaseDashboardCard.vue';
 import WeatherSortControl from '@/components/exercise/WeatherSortControl.vue';
+import ProgressSpinner from 'primevue/progressspinner'
+import Message from 'primevue/message'
+import Divider from 'primevue/divider'
 import { useWeatherStore } from '@/stores/weather'
 
 const weatherStore = useWeatherStore()
@@ -58,20 +61,55 @@ watchEffect(() => {
   <BaseDashboardCard>
     <div>
       <h2>지역별 날씨 현황</h2>
+      <Divider />
       <div>
         <h2 v-if="!weatherStore.isLoading">평균 기온: {{ averageTemp }}도</h2>
         <WeatherSortControl :sort-order="sortOrder" @update:sort-order="sortOrder = $event" />
       </div>
       <div>
-        <div v-if="weatherStore.isLoading">날씨 불러오는 중...</div>
-        <div v-else-if="filteredWeatherList.length > 0">
+        <div v-if="weatherStore.isLoading">
+          <ProgressSpinner />
+        </div>
+        <div v-else-if="filteredWeatherList.length > 0" class="weather-grid">
           <WeatherCard v-for="weather in orderedWeatherList" :key="weather.id" :city="weather"
             @select-card="selectedCityInfo = $event" @click-detail="handleClickDetail" />
         </div>
-        <div v-else>
-          <p>'{{ searchQeury }}'와 일치하는 도시가 없습니다.</p>
-        </div>
+        <Message v-else severity="secondary">'{{ searchQeury }}'와 일치하는 도시가 없습니다.</Message>
       </div>
     </div>
   </BaseDashboardCard>
 </template>
+
+<style scoped>
+@reference '@/assets/main.css';
+
+h2 {
+  @apply text-lg font-bold text-slate-900;
+}
+
+:deep(.p-divider) {
+  @apply my-4;
+}
+
+.weather-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  @apply gap-4;
+}
+
+.weather-grid + .weather-grid {
+  @apply mt-4;
+}
+
+:deep(.p-divider) + div {
+  @apply mb-4 flex flex-wrap items-center justify-between gap-3;
+}
+
+:deep(.p-progress-spinner) {
+  @apply mx-auto flex w-16 justify-self-center;
+}
+
+:deep(.p-message) {
+  @apply rounded-xl;
+}
+</style>
