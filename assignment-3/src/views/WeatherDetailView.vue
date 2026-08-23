@@ -45,7 +45,7 @@ function closeOverlay() {
 }
 
 .detail-panel {
-  @apply relative w-full max-w-md;
+  @apply relative w-full max-w-lg;
 }
 
 .detail-close {
@@ -57,7 +57,8 @@ function closeOverlay() {
 }
 
 .detail-loading {
-  @apply flex aspect-[2060/940] w-full items-center justify-center rounded-2xl bg-slate-200;
+  @apply flex w-full items-center justify-center rounded-2xl bg-slate-200;
+  min-height: 22rem;
 }
 
 .detail-loading :deep(.p-progress-spinner) {

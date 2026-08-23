@@ -1,7 +1,7 @@
 import { ref } from 'vue'
-import axios from 'axios'
 import { defineStore } from 'pinia'
 import { KOREAN_CITY_ALIASES } from '@/utils/cityAlias'
+import { getOwmWeather } from '@/api/weatherApi'
 
 export const cities = [
   { id: 'city_01', name: '서울', lat: 37.5665, lon: 126.978 },
@@ -22,33 +22,11 @@ export const useWeatherStore = defineStore('weather', () => {
   const isLoading = ref(false)
   const weatherList = ref([]) //(객체를담는)배열
 
-  const isSearching = ref(false)
-  const searchedCity = ref(null)
-  const searchError = ref(null)
-  const geocodedCities = ref({}) // id -> { id, name, lat, lon }, 검색으로 찾은 도시 캐시
-
-  const isSuggesting = ref(false)
-  const searchSuggestions = ref([])
-
-  // 좌표(lat, lon) 하나로 도시 하나의 날씨를 조회해서 필요한 필드만 정리해 반환
-  const handleFetchWeather = async (lat, lon) => {
-    const API_KEY = import.meta.env.VITE_OPENWEATHER_KEY
-    const URL = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
-
-    const response = await axios.get(URL)
-
-    console.log('Axios 통신 응답 전체 객체: ', response)
-    console.log('백엔드가 준 핵심 날씨 데이터(JSON): ', response.data)
-
-    return {
-      name: response.data.name,
-      temp: response.data.main.temp,
-      status: response.data.weather[0].main,
-      humidity: response.data.main.humidity,
-      windSpeed: response.data.wind.speed,
-      dt: response.data.dt,
-      timezone: response.data.timezone,
-    }
+  // 한국 12개 도시는 OpenWeatherMap을 도시명으로 조회 (OWM의 한글 지명 인식이 부실해 영문 별칭으로 치환)
+  const fetchKoreanCityWeather = async (city) => {
+    const queryName = KOREAN_CITY_ALIASES[city.name] ?? city.name
+    const weather = await getOwmWeather(queryName)
+    return { ...weather, id: city.id, cityName: city.name }
   }
 
   // cities 목록 전체를 조회해서 weatherList를 채움
@@ -56,12 +34,7 @@ export const useWeatherStore = defineStore('weather', () => {
     isLoading.value = true
 
     try {
-      const results = await Promise.all(
-        cities.map(async (city) => {
-          const weather = await handleFetchWeather(city.lat, city.lon)
-          return { ...weather, id: city.id, name: city.name }
-        })
-      )
+      const results = await Promise.all(cities.map((city) => fetchKoreanCityWeather(city)))
       weatherList.value = results
     } catch (error) {
       console.error('통신 중 에러가 발생했습니다: ', error)
@@ -72,13 +45,12 @@ export const useWeatherStore = defineStore('weather', () => {
 
   // cityId로 좌표를 찾아 해당 도시 하나의 상세 날씨를 조회
   const fetchCityDetail = async (cityId) => {
-    const city = cities.find((c) => c.id === cityId) || geocodedCities.value[cityId]
+    const city = cities.find((c) => c.id === cityId)
     if (!city) return null
 
     isLoading.value = true
     try {
-      const weather = await handleFetchWeather(city.lat, city.lon)
-      return { ...weather, id: city.id, name: city.name }
+      return await fetchKoreanCityWeather(city)
     } catch (error) {
       console.error('통신 중 에러가 발생했습니다: ', error)
       return null
@@ -87,75 +59,10 @@ export const useWeatherStore = defineStore('weather', () => {
     }
   }
 
-  // 입력한 글자로 지오코딩(Open-Meteo) 후보 도시 목록을 조회 (자동완성용)
-  const fetchCitySuggestions = async (query) => {
-    const raw = query?.trim()
-    if (!raw) {
-      searchSuggestions.value = []
-      return
-    }
-
-    // Open-Meteo는 한글 지명 매칭이 부실해서, 흔히 쓰이는 도시는 영문 검색어로 치환
-    const name = KOREAN_CITY_ALIASES[raw] ?? raw
-
-    isSuggesting.value = true
-    try {
-      const geoResponse = await axios.get('https://geocoding-api.open-meteo.com/v1/search', {
-        params: { name, count: 8, language: 'ko' },
-      })
-
-      searchSuggestions.value = (geoResponse.data?.results ?? []).map((result) => {
-        const region = result.admin1 ? `${result.admin1}, ` : ''
-        const country = result.country ?? result.country_code ?? ''
-        return {
-          label: `${result.name} (${region}${country})`,
-          name: result.name,
-          lat: result.latitude,
-          lon: result.longitude,
-        }
-      })
-    } catch (error) {
-      console.error('통신 중 에러가 발생했습니다: ', error)
-      searchSuggestions.value = []
-    } finally {
-      isSuggesting.value = false
-    }
-  }
-
-  // 자동완성 후보 중 선택한 도시의 위경도로 실시간 날씨를 조회
-  const selectSearchedCity = async (suggestion) => {
-    if (!suggestion) return
-
-    isSearching.value = true
-    searchError.value = null
-    searchedCity.value = null
-
-    try {
-      const id = `geo_${suggestion.lat}_${suggestion.lon}`
-      geocodedCities.value[id] = { id, name: suggestion.name, lat: suggestion.lat, lon: suggestion.lon }
-
-      const weather = await handleFetchWeather(suggestion.lat, suggestion.lon)
-      searchedCity.value = { id, name: suggestion.name, ...weather }
-    } catch (error) {
-      console.error('통신 중 에러가 발생했습니다: ', error)
-      searchError.value = '날씨 정보를 불러오는 중 오류가 발생했습니다.'
-    } finally {
-      isSearching.value = false
-    }
-  }
-
   return {
     isLoading,
     weatherList,
-    handleFetchWeather,
     fetchAllWeather,
     fetchCityDetail,
-    isSearching,
-    searchedCity,
-    searchError,
-    isSuggesting,
-    searchSuggestions,
-    fetchCitySuggestions,
-    selectSearchedCity,
   }
 })

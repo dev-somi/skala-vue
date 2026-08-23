@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, watch, watchEffect, onMounted } from 'vue';
 import SearchBar from '@/components/exercise/SearchBar.vue'
-import { Search } from '@lucide/vue'
 import WeatherCard from '@/components/exercise/WeatherCard.vue';
 import BaseDashboardCard from '@/components/exercise/BaseDashboardCard.vue';
 import WeatherSortControl from '@/components/exercise/WeatherSortControl.vue';
@@ -19,19 +18,19 @@ onMounted(() => {
 const searchQeury = ref('')
 const selectedCityInfo = ref(null)
 const filteredWeatherList = computed(() =>
-  weatherStore.weatherList.filter((city) => city.name.includes(searchQeury.value))
+  weatherStore.weatherList.filter((city) => city.cityName.includes(searchQeury.value))
 )
 
 const averageTemp = computed(() => {
-  return (filteredWeatherList.value.reduce((acc, cur) => acc + cur.temp, 0) / filteredWeatherList.value.length).toFixed(1)
+  return (filteredWeatherList.value.reduce((acc, cur) => acc + cur.temperature, 0) / filteredWeatherList.value.length).toFixed(1)
 })
 
 const sortOrder = ref(null)
 const orderedWeatherList = computed(() => {
   if (sortOrder.value === 'hot') {
-    return [...filteredWeatherList.value].sort((a, b) => b.temp - a.temp)
+    return [...filteredWeatherList.value].sort((a, b) => b.temperature - a.temperature)
   } else if (sortOrder.value === 'cold') {
-    return [...filteredWeatherList.value].sort((a, b) => a.temp - b.temp)
+    return [...filteredWeatherList.value].sort((a, b) => a.temperature - b.temperature)
   } else {
     return filteredWeatherList.value
   }
@@ -39,7 +38,7 @@ const orderedWeatherList = computed(() => {
 
 watch(selectedCityInfo, (newValue) => {
   console.log('[watch 감지] 상태 바 문구가 업데이트 되었습니다.')
-  console.log(`${newValue?.name}이 선택되었습니다.`)
+  console.log(`${newValue?.cityName}이 선택되었습니다.`)
 })
 
 function handleClickDetail(city) {
@@ -50,40 +49,10 @@ watchEffect(() => {
   console.log(`[watchEffect 자동 호출] 현재 검색어 '${searchQeury.value}'에 매칭되는 API 데이터를 필터링하고 있습니다.
   `)
 })
-
-function handleCompleteQuery(query) {
-  weatherStore.fetchCitySuggestions(query)
-}
-
-function handleSelectCity(suggestion) {
-  weatherStore.selectSearchedCity(suggestion)
-}
-
 </script>
 
 <template>
-  <SearchBar class="home-search" :search-query="searchQeury" :suggestions="weatherStore.searchSuggestions"
-    :is-searching="weatherStore.isSearching" :is-suggesting="weatherStore.isSuggesting"
-    @update-query="searchQeury = $event" @complete-query="handleCompleteQuery" @select-city="handleSelectCity" />
-
-  <BaseDashboardCard v-if="weatherStore.isSearching || weatherStore.searchError || weatherStore.searchedCity">
-    <div>
-      <h2 class="search-result-title">
-        <Search :size="18" />
-        검색 결과
-      </h2>
-      <Divider />
-      <div v-if="weatherStore.isSearching" class="search-result-status">
-        <ProgressSpinner />
-      </div>
-      <Message v-else-if="weatherStore.searchError" severity="error" class="search-result-status">{{
-        weatherStore.searchError }}</Message>
-      <div v-else-if="weatherStore.searchedCity" class="weather-grid weather-grid--single">
-        <WeatherCard :city="weatherStore.searchedCity" @select-card="selectedCityInfo = $event"
-          @click-detail="handleClickDetail" />
-      </div>
-    </div>
-  </BaseDashboardCard>
+  <SearchBar class="home-search" :search-query="searchQeury" @update-query="searchQeury = $event" />
 
   <BaseDashboardCard>
     <div>
@@ -118,14 +87,6 @@ h2 {
   @apply mx-auto mb-2 w-full max-w-xl;
 }
 
-.search-result-title {
-  @apply flex items-center gap-2 text-sky-700;
-}
-
-.search-result-status {
-  @apply flex items-center justify-center py-6 text-center;
-}
-
 :deep(.p-divider) {
   @apply my-4;
 }
@@ -134,11 +95,6 @@ h2 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
   @apply gap-6;
-}
-
-.weather-grid--single {
-  grid-template-columns: minmax(0, 24rem);
-  justify-content: start;
 }
 
 .weather-grid+.weather-grid {

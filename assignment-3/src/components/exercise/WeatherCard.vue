@@ -1,10 +1,10 @@
 <template>
-  <div class="weather-card" :class="{ 'weather-card--readonly': readonly }" :style="backgroundStyle" @click="!readonly && showClickedCity()">
+  <div class="weather-card" :class="{ 'weather-card--readonly': readonly, 'weather-card--detailed': detailed }" :style="backgroundStyle" @click="!readonly && showClickedCity()">
     <div class="weather-card__overlay">
       <div class="weather-card__row weather-card__row--top">
         <div class="weather-card__status">
           <component :is="statusIcon" :size="20" />
-          <span>{{ city.status }}</span>
+          <span>{{ city.condition }}</span>
         </div>
         <div class="weather-card__top-right">
           <div v-if="!readonly" class="weather-card__actions">
@@ -24,19 +24,38 @@
       </div>
 
       <div v-if="detailed" class="weather-card__stats">
-        <div class="weather-card__stat">
+        <div v-if="displayFeelsLike !== null" class="weather-card__stat">
+          <Thermometer :size="16" />
+          <span>체감 {{ displayFeelsLike }}{{ configStore.unitSymbol }}</span>
+        </div>
+        <div v-if="city.humidity !== null" class="weather-card__stat">
           <Droplets :size="16" />
           <span>습도 {{ city.humidity }}%</span>
         </div>
-        <div class="weather-card__stat">
+        <div v-if="city.windSpeed !== null" class="weather-card__stat">
           <Wind :size="16" />
           <span>풍속 {{ city.windSpeed }}m/s</span>
+        </div>
+        <div v-if="city.cloudCover !== null" class="weather-card__stat">
+          <Cloud :size="16" />
+          <span>구름 {{ city.cloudCover }}%</span>
+        </div>
+        <div v-if="displayTempMin !== null && displayTempMax !== null" class="weather-card__stat">
+          <ArrowUpDown :size="16" />
+          <span>{{ displayTempMin }}° / {{ displayTempMax }}°</span>
+        </div>
+        <div v-if="city.sunrise && city.sunset" class="weather-card__stat">
+          <Sunrise :size="16" />
+          <span>{{ city.sunrise }} · {{ city.sunset }}</span>
         </div>
       </div>
 
       <div class="weather-card__row weather-card__row--bottom">
-        <div class="weather-card__name">{{ city.name }}</div>
-        <div class="weather-card__date">{{ dateLabel }}</div>
+        <div class="weather-card__name">{{ city.cityName }}</div>
+        <div class="weather-card__date">
+          <span>{{ dateLabel }}</span>
+          <span v-if="city.time">{{ city.time }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -47,7 +66,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import { useToast } from 'primevue/usetoast'
-import { Maximize2, Star, Droplets, Wind } from '@lucide/vue'
+import { Maximize2, Star, Droplets, Wind, Thermometer, Cloud, ArrowUpDown, Sunrise } from '@lucide/vue'
 import { useConfigStore } from '@/stores/configStore'
 import { useFavoriteStore } from '@/stores/favorite'
 import { getWeatherBackground, getWeatherIcon, getLocalDateLabel } from '@/utils/weatherCondition'
@@ -72,18 +91,23 @@ const props = defineProps({
   }
 })
 
-const displayTemp = computed(() => {
-  const rawTemp = props.city.temp
+function toDisplayTemp(celsius) {
+  if (celsius === null || celsius === undefined) return null
   if (configStore.unit === 'fahrenheit') {
-    return Math.round((rawTemp * 9) / 5 + 32)
+    return Math.round((celsius * 9) / 5 + 32)
   }
-  return Math.round(rawTemp)
-})
+  return Math.round(celsius)
+}
 
-const statusIcon = computed(() => getWeatherIcon(props.city.status))
-const dateLabel = computed(() => getLocalDateLabel(props.city.dt, props.city.timezone))
+const displayTemp = computed(() => toDisplayTemp(props.city.temperature))
+const displayFeelsLike = computed(() => toDisplayTemp(props.city.feelsLike))
+const displayTempMax = computed(() => toDisplayTemp(props.city.tempMax))
+const displayTempMin = computed(() => toDisplayTemp(props.city.tempMin))
+
+const statusIcon = computed(() => getWeatherIcon(props.city.condition))
+const dateLabel = computed(() => getLocalDateLabel(props.city.date))
 const backgroundStyle = computed(() => {
-  const backgroundUrl = getWeatherBackground(props.city.status)
+  const backgroundUrl = getWeatherBackground(props.city.condition)
   return backgroundUrl ? { backgroundImage: `url(${backgroundUrl})` } : {}
 })
 
@@ -92,7 +116,7 @@ const emit = defineEmits(['select-card', 'click-detail'])
 function showClickedCity() {
   toast.add({
     severity: 'info',
-    summary: `${props.city.name}가 선택되었습니다`,
+    summary: `${props.city.cityName}가 선택되었습니다`,
     detail: '더 자세한 정보를 보려면 상세보기 아이콘을 클릭하세요',
     life: 3000
   })
@@ -126,9 +150,18 @@ function showDetail() {
   @apply translate-y-0 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.45)];
 }
 
+.weather-card--detailed {
+  aspect-ratio: auto;
+}
+
 .weather-card__overlay {
   @apply relative flex h-full flex-col justify-between p-5 text-white;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0) 65%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+.weather-card--detailed .weather-card__overlay {
+  @apply h-auto justify-start gap-5 py-6;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.25) 30%, rgba(0, 0, 0, 0.3) 70%, rgba(0, 0, 0, 0.55) 100%);
 }
 
 .weather-card__top-right {
@@ -165,12 +198,20 @@ function showDetail() {
 }
 
 .weather-card__stats {
-  @apply flex gap-2 self-start;
+  @apply flex flex-wrap gap-2 self-start;
 }
 
 .weather-card__stat {
   @apply flex items-center gap-1.5 rounded-full bg-black/20 px-2.5 py-1 text-[0.85rem] font-medium backdrop-blur-sm;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.weather-card--detailed .weather-card__stats {
+  @apply grid w-full grid-cols-2 gap-2.5;
+}
+
+.weather-card--detailed .weather-card__stat {
+  @apply justify-start rounded-xl px-3 py-2.5 text-[0.95rem];
 }
 
 .weather-card__status {
@@ -190,7 +231,11 @@ function showDetail() {
 }
 
 .weather-card__date {
-  @apply flex-shrink-0 text-[0.85rem] opacity-90;
+  @apply flex flex-shrink-0 items-baseline gap-1.5 text-[0.85rem] opacity-90;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.weather-card__date span + span {
+  @apply border-l border-white/40 pl-1.5 font-medium tabular-nums;
 }
 </style>

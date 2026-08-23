@@ -37,11 +37,8 @@ export function getWeatherIcon(status) {
   return iconsByGroup[status.toLowerCase()] ?? Cloud
 }
 
-export function getLocalDateLabel(dt, timezone) {
-  if (dt === undefined || dt === null || timezone === undefined || timezone === null) return ''
-  const localDate = new Date((dt + timezone) * 1000)
-  const year = localDate.getUTCFullYear()
-  const month = localDate.getUTCMonth() + 1
-  const day = localDate.getUTCDate()
+export function getLocalDateLabel(date) {
+  if (!date) return ''
+  const [year, month, day] = date.split('-').map(Number)
   return `${year}년 ${month}월 ${day}일`
 }

@@ -32,5 +32,5 @@ export const useFavoriteStore = defineStore('favorite', () => {
     ).filter(Boolean)
   )
 
-  return { favoriteIds, toggleFavorite, isFavorite, favoriteCities }
+  return { toggleFavorite, isFavorite, favoriteCities }
 })

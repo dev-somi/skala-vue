@@ -16,7 +16,7 @@ const configStore = useConfigStore()
 const selectedCity = ref(cities[0])
 
 function loadComparison() {
-  historyStore.fetchComparison(selectedCity.value.lat, selectedCity.value.lon)
+  historyStore.fetchComparison(selectedCity.value.lat, selectedCity.value.lon, selectedCity.value.name)
 }
 
 onMounted(loadComparison)
@@ -40,11 +40,7 @@ function toCityWeather(id, weather) {
   if (!weather) return null
   return {
     id,
-    name: selectedCity.value.name,
-    temp: weather.temp,
-    status: weather.status,
-    dt: weather.dt,
-    timezone: weather.timezone,
+    ...weather,
   }
 }
 
@@ -65,8 +61,8 @@ const columns = computed(() => [
 
 const tempDiff = computed(() => {
   if (!bothLoaded.value) return null
-  const today = displayTemp(historyStore.todayWeather.temp)
-  const lastYear = displayTemp(historyStore.lastYearWeather.temp)
+  const today = displayTemp(historyStore.todayWeather.temperature)
+  const lastYear = displayTemp(historyStore.lastYearWeather.temperature)
   return Math.round((today - lastYear) * 10) / 10
 })
 
